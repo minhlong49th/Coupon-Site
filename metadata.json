@@ -1,0 +1,6 @@
+{
+  "name": "Coupon Site",
+  "description": "A single-page affiliate coupon site prototype with public frontend and admin panel.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
