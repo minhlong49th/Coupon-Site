@@ -17,10 +17,10 @@ export default async function SearchPage({ searchParams }: { searchParams: { q?:
   
   const q = query.toLowerCase().trim();
 
-  const matchingBrands = allBrands.filter(b => b.name.toLowerCase().includes(q) || b.domain.toLowerCase().includes(q));
+  const matchingBrands = allBrands.filter(b => b.name.toLowerCase().includes(q) || (b.domain && b.domain.toLowerCase().includes(q)));
   const matchingCoupons = allCoupons.filter(c => {
-    return c.title.toLowerCase().includes(q) || 
-           c.code.toLowerCase().includes(q) || 
+    return (c.title && c.title.toLowerCase().includes(q)) || 
+           (c.code && c.code.toLowerCase().includes(q)) || 
            c.description?.toLowerCase().includes(q) ||
            (c.brand && c.brand.name.toLowerCase().includes(q));
   });

@@ -10,17 +10,15 @@ export default async function PublicLayout({ children }: { children: React.React
   const brands = await getMockBrands();
 
   return (
-    <html lang="en">
-      <body style={{ fontFamily: "Inter, system-ui, -apple-system, sans-serif" }} className="bg-gray-50 text-gray-900 min-h-screen flex flex-col">
-        <LayoutWrapper
-          header={<SiteHeader brands={brands} />}
-          categoryNav={<CategoryNav />}
-          footer={<SiteFooter />}
-        >
-          {children}
-        </LayoutWrapper>
-        <Toaster position="bottom-right" richColors />
-      </body>
-    </html>
+    <div style={{ fontFamily: "Inter, system-ui, -apple-system, sans-serif" }} className="bg-gray-50 text-gray-900 min-h-screen flex flex-col">
+      <LayoutWrapper
+        header={<SiteHeader brands={brands} />}
+        categoryNav={<CategoryNav />}
+        footer={<SiteFooter />}
+      >
+        {children}
+      </LayoutWrapper>
+      <Toaster position="bottom-right" richColors />
+    </div>
   );
 }

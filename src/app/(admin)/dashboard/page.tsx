@@ -16,7 +16,7 @@ export default async function DashboardPage() {
   ]);
 
   const recentCoupons = coupons.slice(0, 5);
-  const topBrands = brands.sort((a, b) => b.clickCount - a.clickCount).slice(0, 5);
+  const topBrands = brands.sort((a, b) => (b.clickCount || 0) - (a.clickCount || 0)).slice(0, 5);
 
   return (
     <div className="space-y-5 max-w-7xl mx-auto">
@@ -98,7 +98,7 @@ export default async function DashboardPage() {
                   <p className="text-xs text-gray-500">{b.couponCount} coupons</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-xs font-medium text-gray-300">{b.clickCount.toLocaleString()}</p>
+                  <p className="text-xs font-medium text-gray-300">{(b.clickCount || 0).toLocaleString()}</p>
                   <p className="text-xs text-gray-600">clicks</p>
                 </div>
               </div>
