@@ -1,32 +1,37 @@
 "use client";
+import { useState } from "react";
 
 import type { Coupon } from "@/types";
 import { useCopyCode } from "@/hooks/useCopyCode";
 import { getTypeLabel } from "@/lib/utils";
+import { ClientImage } from "@/components/public/ClientImage";
 
 export function CouponListItem({ coupon }: { coupon: Coupon }) {
   const { copiedId, copyCode, openDeal } = useCopyCode();
+  const [isRevealed, setIsRevealed] = useState(false);
 
   const isNoCode = coupon.type === "FREE_SHIPPING" || !coupon.code;
+  const showCode = isRevealed || copiedId === coupon.id;
+
+  const handleAction = () => {
+    if (isNoCode) {
+      openDeal(coupon.id, coupon.affiliateUrl);
+    } else {
+      setIsRevealed(true);
+      copyCode(coupon.id, coupon.code || "", coupon.affiliateUrl);
+    }
+  };
 
   return (
     <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 bg-white rounded-lg border border-gray-200 px-4 py-3 hover:border-gray-300 transition shadow-sm">
-      <div className="w-8 h-8 rounded border border-gray-100 p-0.5 shrink-0 hidden sm:flex bg-white items-center justify-center overflow-hidden">
-        {coupon.brand.logoUrl ? (
-          <img 
-            src={coupon.brand.logoUrl} 
-            className="w-full h-full object-contain" 
-            alt={coupon.brand.name} 
-            onError={(e) => {
-              (e.target as HTMLImageElement).style.display = 'none';
-              (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
-            }}
-          />
-        ) : null}
-        <div className={`${coupon.brand.logoUrl ? 'hidden ' : ''}w-full h-full bg-violet-50 text-violet-600 flex items-center justify-center font-bold text-xs`}>
-          {coupon.brand.name.charAt(0).toUpperCase()}
-        </div>
-      </div>
+      <ClientImage
+        src={coupon.brand.logoUrl || ""}
+        alt={coupon.brand.name}
+        className="w-full h-full object-contain"
+        containerClassName="w-8 h-8 rounded border border-gray-100 p-0.5 shrink-0 hidden sm:flex bg-white items-center justify-center overflow-hidden"
+        fallbackClassName="w-full h-full bg-violet-50 text-violet-600 flex items-center justify-center font-bold text-xs select-none"
+        fallbackText={coupon.brand.name.charAt(0).toUpperCase()}
+      />
       <div className="flex-1 min-w-0">
         <h4 className="font-semibold text-gray-900 text-sm truncate">{coupon.title}</h4>
         <div className="text-xs text-gray-500 truncate">{coupon.brand.name}</div>
@@ -36,12 +41,16 @@ export function CouponListItem({ coupon }: { coupon: Coupon }) {
           {getTypeLabel(coupon.type, coupon.discountValue)}
         </span>
         <div className="flex items-center gap-2">
-           {!isNoCode && <code className="font-mono text-sm font-bold text-violet-700 bg-gray-50 border border-gray-200 rounded px-2 py-1 select-all">{coupon.code}</code>}
+           {!isNoCode && (
+             <code className="font-mono text-xs md:text-sm font-bold text-violet-700 bg-gray-50 border border-gray-200 rounded px-2.5 py-1 select-none">
+               {showCode ? coupon.code : "••••••••"}
+             </code>
+           )}
            <button 
-             onClick={() => isNoCode ? openDeal(coupon.id, coupon.affiliateUrl) : copyCode(coupon.id, coupon.code, coupon.affiliateUrl)}
-             className={`text-xs px-3 py-1.5 rounded font-medium transition-colors ${copiedId === coupon.id ? "bg-emerald-600 text-white" : "bg-violet-100 text-violet-700 hover:bg-violet-200"}`}
+             onClick={handleAction}
+             className={`text-xs px-3 py-1.5 rounded font-semibold transition-colors ${copiedId === coupon.id ? "bg-emerald-600 text-white animate-pulse" : "bg-violet-100 text-violet-700 hover:bg-violet-200"}`}
            >
-             {isNoCode ? "Activate" : copiedId === coupon.id ? "Copied" : "Copy"}
+             {isNoCode ? "Activate" : copiedId === coupon.id ? "Copied!" : "Reveal & Copy"}
            </button>
         </div>
       </div>

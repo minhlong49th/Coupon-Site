@@ -14,18 +14,25 @@ export function CouponTable({ initialCoupons, brands }: { initialCoupons: Coupon
 
   const handleSave = (couponData: Partial<Coupon>) => {
     if (editingCoupon) {
-      setCoupons(prev => prev.map(c => c.id === editingCoupon.id ? { ...c, ...couponData } as Coupon : c));
+      setCoupons(prev => prev.map(c => c.id === editingCoupon.id ? { 
+        ...c, 
+        ...couponData,
+        successRate: couponData.successRate !== undefined ? Number(couponData.successRate) : c.successRate,
+        useCount: couponData.useCount !== undefined ? Number(couponData.useCount) : c.useCount,
+        upvotes: couponData.upvotes !== undefined ? Number(couponData.upvotes) : c.upvotes,
+        downvotes: couponData.downvotes !== undefined ? Number(couponData.downvotes) : c.downvotes,
+      } as Coupon : c));
       setEditingCoupon(undefined);
     } else {
       const newCoupon: Coupon = {
         ...couponData,
         id: Math.random().toString(36).substring(7),
         brand: couponData.brand || brands.find(b => b.id === couponData.brandId) || brands[0],
-        successRate: 0,
-        useCount: 0,
-        clickCount: 0,
-        upvotes: 0,
-        downvotes: 0,
+        successRate: couponData.successRate !== undefined ? Number(couponData.successRate) : 100,
+        useCount: couponData.useCount !== undefined ? Number(couponData.useCount) : 0,
+        clickCount: couponData.clickCount !== undefined ? Number(couponData.clickCount) : 0,
+        upvotes: couponData.upvotes !== undefined ? Number(couponData.upvotes) : 0,
+        downvotes: couponData.downvotes !== undefined ? Number(couponData.downvotes) : 0,
         submittedBy: "ADMIN",
         verifiedAt: new Date().toISOString(),
         createdAt: new Date().toISOString(),

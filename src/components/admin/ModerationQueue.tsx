@@ -2,13 +2,64 @@
 import type { Coupon } from "@/types";
 import { useState } from "react";
 import { timeAgo } from "@/lib/utils";
+import { toast } from "sonner";
 
 export function ModerationQueue({ initialPending, activeCoupons = [] }: { initialPending: Coupon[], activeCoupons?: Coupon[] }) {
   const [queue, setQueue] = useState(initialPending);
 
-  const approve = (id: string) => setQueue(q => q.filter(c => c.id !== id));
-  const reject = (id: string) => setQueue(q => q.filter(c => c.id !== id));
-  const merge = (id: string) => setQueue(q => q.filter(c => c.id !== id));
+  const approve = async (id: string) => {
+    try {
+      const res = await fetch(`/api/admin/coupons/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "ACTIVE" }),
+      });
+      if (res.ok) {
+        setQueue(q => q.filter(c => c.id !== id));
+        toast.success("Coupon approved successfully!");
+      } else {
+        toast.error("Failed to approve coupon.");
+      }
+    } catch (e) {
+      toast.error("An error occurred.");
+    }
+  };
+
+  const reject = async (id: string) => {
+    try {
+      const res = await fetch(`/api/admin/coupons/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "REJECTED" }),
+      });
+      if (res.ok) {
+        setQueue(q => q.filter(c => c.id !== id));
+        toast.success("Coupon marked as rejected.");
+      } else {
+        toast.error("Failed to reject coupon.");
+      }
+    } catch (e) {
+      toast.error("An error occurred.");
+    }
+  };
+
+  const merge = async (id: string) => {
+    try {
+      const res = await fetch(`/api/admin/coupons/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "ACTIVE" }),
+      });
+      if (res.ok) {
+        setQueue(q => q.filter(c => c.id !== id));
+        toast.success("Coupon merged and verified!");
+      } else {
+        toast.error("Failed to merge coupon.");
+      }
+    } catch (e) {
+      toast.error("An error occurred.");
+    }
+  };
 
   // Check if a pending coupon already exists as ACTIVE for the same brand and code
   const isDuplicate = (coupon: Coupon) => {

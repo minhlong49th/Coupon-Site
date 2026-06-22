@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { getMockBrands, getMockCoupons } from "@/lib/mock-data";
 import { BrandCard } from "@/components/public/BrandCard";
 import { CouponCard } from "@/components/public/CouponCard";
 import { CouponListItem } from "@/components/public/CouponListItem";
+import { HomeSearch } from "@/components/public/HomeSearch";
 import { fmt } from "@/lib/utils";
 
 export const metadata: Metadata = {
@@ -12,9 +14,9 @@ export const metadata: Metadata = {
 export default async function HomePage() {
   const [brands, coupons] = await Promise.all([getMockBrands(), getMockCoupons()]);
   
-  const trendingBrands = [...brands].sort((a,b) => b.clickCount - a.clickCount).slice(0, 10);
+  const trendingBrands = [...brands].sort((a,b) => (b.clickCount || 0) - (a.clickCount || 0)).slice(0, 10);
   const featuredCoupons = [...coupons].filter(c => c.isFeatured).slice(0, 6);
-  const recentCoupons = [...coupons].sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 8);
+  const recentCoupons = [...coupons].sort((a,b) => new Date(b.createdAt || "").getTime() - new Date(a.createdAt || "").getTime()).slice(0, 8);
 
   const CATEGORIES = [
     { id: "fashion", name: "Fashion", emoji: "👗", count: 59 },
@@ -33,10 +35,7 @@ export default async function HomePage() {
       <div className="bg-gradient-to-br from-violet-50 via-white to-white py-16 px-4 text-center border-b border-gray-200">
         <h1 className="text-4xl md:text-5xl font-bold text-gray-900 tracking-tight mb-4">Find the Best Coupon Codes & Deals</h1>
         <p className="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">Save money with {fmt(coupons.length * 245)} verified promo codes from {fmt(brands.length * 40)} top brands</p>
-        <div className="max-w-2xl mx-auto flex flex-col md:flex-row gap-2">
-           <input type="text" placeholder="Search stores, brands, or categories..." className="flex-1 px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-violet-500 focus:border-violet-500 outline-none text-gray-900" />
-           <button className="bg-violet-600 hover:bg-violet-700 text-white px-6 py-3 rounded-lg font-bold transition">Search</button>
-        </div>
+        <HomeSearch brands={brands} />
       </div>
 
       {/* Stats */}
@@ -54,7 +53,9 @@ export default async function HomePage() {
         <section>
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">🔥 Featured Deals Today</h2>
-            <a href="#" className="text-violet-600 hover:text-violet-700 font-medium text-sm">View all →</a>
+            <Link href="/deals" className="text-violet-600 hover:text-violet-700 font-medium text-sm">
+              View all →
+            </Link>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {featuredCoupons.map(c => <CouponCard key={c.id} coupon={c} />)}
@@ -81,7 +82,9 @@ export default async function HomePage() {
         <section>
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-gray-900">Trending Stores</h2>
-            <a href="#" className="text-violet-600 hover:text-violet-700 font-medium text-sm">All stores →</a>
+            <Link href="/stores" className="text-violet-600 hover:text-violet-700 font-medium text-sm">
+              All stores →
+            </Link>
           </div>
           <div className="flex gap-4 overflow-x-auto pb-4" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             {trendingBrands.map(b => (

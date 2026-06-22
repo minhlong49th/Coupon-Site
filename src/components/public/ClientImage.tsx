@@ -1,20 +1,57 @@
 "use client";
+import { useState, useEffect, useRef } from "react";
 
-export function ClientImage({ src, alt, className, containerClassName, fallbackClassName, fallbackText }: { src: string, alt: string, className?: string, containerClassName?: string, fallbackClassName?: string, fallbackText: string }) {
+export function ClientImage({ 
+  src, 
+  alt, 
+  className, 
+  containerClassName, 
+  fallbackClassName, 
+  fallbackText 
+}: { 
+  src: string, 
+  alt: string, 
+  className?: string, 
+  containerClassName?: string, 
+  fallbackClassName?: string, 
+  fallbackText: string 
+}) {
+  const [imageError, setImageError] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const imgRef = useRef<HTMLImageElement>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (mounted && imgRef.current) {
+      if (imgRef.current.complete && imgRef.current.naturalWidth === 0) {
+        setImageError(true);
+      }
+    }
+  }, [mounted, src]);
+
+  // Reset error if src changes
+  useEffect(() => {
+    setImageError(false);
+  }, [src]);
+
   return (
     <div className={containerClassName}>
-      <img 
-        src={src} 
-        className={className} 
-        alt={alt} 
-        onError={(e) => {
-          (e.target as HTMLImageElement).style.display = 'none';
-          (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
-        }}
-      />
-      <div className={`hidden ${fallbackClassName || ""}`}>
-        {fallbackText}
-      </div>
+      {(!mounted || !src || imageError) ? (
+        <div className={fallbackClassName}>
+          {fallbackText}
+        </div>
+      ) : (
+        <img 
+          ref={imgRef}
+          src={src} 
+          className={className} 
+          alt={alt} 
+          onError={() => setImageError(true)}
+        />
+      )}
     </div>
   );
 }

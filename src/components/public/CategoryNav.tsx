@@ -1,42 +1,38 @@
 "use client";
 
+import React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { cn } from "@/lib/utils";
-
-const CATEGORIES = [
-  { id: "all", name: "All Categories", path: "/" },
-  { id: "fashion", name: "Fashion", emoji: "👗", path: "/coupons/fashion" },
-  { id: "electronics", name: "Electronics", emoji: "💻", path: "/coupons/electronics" },
-  { id: "travel", name: "Travel", emoji: "✈️", path: "/coupons/travel" },
-  { id: "beauty", name: "Beauty", emoji: "💄", path: "/coupons/beauty" },
-  { id: "education", name: "Education", emoji: "📚", path: "/coupons/education" },
-  { id: "food", name: "Food & Dining", emoji: "🍔", path: "/coupons/food" },
-  { id: "home", name: "Home & Garden", emoji: "🏠", path: "/coupons/home" },
-];
 
 export function CategoryNav() {
-  const pathname = usePathname();
+  const CATEGORIES = [
+    { id: "fashion", name: "Fashion", emoji: "👗" },
+    { id: "electronics", name: "Electronics", emoji: "💻" },
+    { id: "travel", name: "Travel", emoji: "✈️" },
+    { id: "beauty", name: "Beauty", emoji: "💄" },
+    { id: "education", name: "Education", emoji: "📚" },
+    { id: "food", name: "Food & Dining", emoji: "🍔" },
+  ];
 
   return (
-    <div className="bg-white border-b border-gray-100 overflow-x-auto shrink-0" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-      <div className="max-w-7xl mx-auto px-4 flex gap-1 h-11 items-center">
-        {CATEGORIES.map(cat => {
-          const isActive = pathname === cat.path;
-          return (
-            <Link
-              key={cat.id}
-              href={cat.path}
-              className={cn(
-                "px-4 py-1.5 text-sm font-medium rounded-full whitespace-nowrap transition-colors",
-                isActive ? "bg-violet-600 text-white" : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-              )}
-            >
-              {cat.emoji && <span className="mr-1.5">{cat.emoji}</span>}
-              {cat.name}
-            </Link>
-          );
-        })}
+    <div className="bg-white border-b border-gray-200 sticky top-16 z-20 overflow-x-auto whitespace-nowrap scrollbar-none" id="category-navigation-bar">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 py-3 flex gap-6 text-sm font-medium items-center">
+        <Link
+          href="/"
+          className="text-gray-900 hover:text-violet-600 transition font-bold"
+        >
+          🏠 Home
+        </Link>
+        <span className="text-gray-300">|</span>
+        {CATEGORIES.map((cat) => (
+          <Link
+            key={cat.id}
+            href={`/coupons/${cat.id}`}
+            className="text-gray-650 hover:text-violet-600 transition flex items-center gap-1.5"
+          >
+            <span>{cat.emoji}</span>
+            <span>{cat.name}</span>
+          </Link>
+        ))}
       </div>
     </div>
   );

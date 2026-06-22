@@ -57,7 +57,10 @@ export function BrandModal({ brand, onClose, onSave }: BrandModalProps) {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-300 mb-1">Domain</label>
-                <input type="text" value={form.domain} onChange={e => setForm({ ...form, domain: e.target.value, logoUrl: e.target.value.includes('.') ? `https://img.logo.dev/${e.target.value}?token=pk_test_placeholder` : form.logoUrl })} className="w-full bg-[#0F1117] border border-white/10 rounded-lg px-4 py-2 outline-none focus:border-violet-500 text-white" />
+                <input type="text" value={form.domain} onChange={e => {
+                  const token = typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_LOGODEV_TOKEN || 'pk_test_placeholder' : 'pk_test_placeholder';
+                  setForm({ ...form, domain: e.target.value, logoUrl: e.target.value.includes('.') ? `https://img.logo.dev/${e.target.value}?token=${token}` : form.logoUrl });
+                }} className="w-full bg-[#0F1117] border border-white/10 rounded-lg px-4 py-2 outline-none focus:border-violet-500 text-white" />
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-300 mb-1">Category</label>

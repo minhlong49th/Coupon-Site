@@ -1,6 +1,8 @@
 "use client";
-import { useState } from "react";
-import type { Coupon, Brand } from "@/types";
+
+import React, { useState, useEffect } from "react";
+import type { Brand, Coupon, CouponType } from "@/types";
+import { X, Sparkles, Link as LinkIcon, AlertCircle, Info, ChevronRight, Save, Check } from "lucide-react";
 
 interface QuickAddModalProps {
   brands: Brand[];
@@ -9,260 +11,499 @@ interface QuickAddModalProps {
 }
 
 export function QuickAddModal({ brands, onClose, onSave }: QuickAddModalProps) {
-  const [url, setUrl] = useState("");
-  const [aiState, setAiState] = useState<"idle" | "loading" | "done" | "error">("idle");
-  const [detectedBrand, setDetectedBrand] = useState<Brand | null>(null);
-  
+  // Navigation tabs inside dialog for high control: AI Auto-fill vs Manual Full Form
+  const [activeTab, setActiveTab] = useState<"AUTO" | "MANUAL">("AUTO");
+  const [affiliateUrl, setAffiliateUrl] = useState("");
+  const [isDetecting, setIsDetecting] = useState(false);
+  const [detectionSuccess, setDetectionSuccess] = useState<string | null>(null);
+
+  // Comprehensive coupon attributes representing FULL information mapping to frontend
   const [form, setForm] = useState({
+    brandId: "",
     code: "",
     title: "",
-    type: "PERCENT",
-    discountValue: "",
-    expiresAt: "",
     description: "",
+    type: "PERCENT" as CouponType,
+    discountValue: 20,
+    affiliateUrl: "",
+    status: "ACTIVE" as "ACTIVE" | "PENDING" | "EXPIRED" | "REJECTED",
+    expiresAt: "",
     isFeatured: false,
+    successRate: 100,
+    useCount: 0,
+    upvotes: 0,
+    downvotes: 0,
   });
 
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  // Pre-seed first brand as default
+  useEffect(() => {
+    if (brands.length > 0 && !form.brandId) {
+      setForm((prev) => ({ ...prev, brandId: brands[0].id }));
+    }
+  }, [brands, form.brandId]);
 
-  const simulateAiDetect = async () => {
-    if (!url) return;
-    setAiState("loading");
-    
-    // Simulate API delay
-    await new Promise(r => setTimeout(r, 1400));
-    
-    try {
-      const urlObj = new URL(url.startsWith('http') ? url : `https://${url}`);
-      const domainParts = urlObj.hostname.replace('www.', '').split('.');
-      const mainDomain = domainParts.length > 1 ? `${domainParts[domainParts.length-2]}.${domainParts[domainParts.length-1]}` : urlObj.hostname;
-      
-      const matchedBrand = brands.find(b => b.domain === mainDomain);
-      
-      if (matchedBrand) {
-         setDetectedBrand(matchedBrand);
-         setAiState("done");
-      } else if (mainDomain.includes('.')) {
-         // Fallback to capitalizing domain name
-         const name = domainParts[domainParts.length-2].charAt(0).toUpperCase() + domainParts[domainParts.length-2].slice(1);
-         const token = process.env.NEXT_PUBLIC_LOGODEV_TOKEN || 'pk_test_placeholder';
-         
-         const newBrand = {
-           id: "temp_" + Date.now(),
-           name,
-           domain: mainDomain,
-           logoUrl: `https://img.logo.dev/${mainDomain}?token=${token}`,
-           category: "Other"
-         } as Brand;
-         setDetectedBrand(newBrand);
-         setAiState("done");
-      } else {
-         setAiState("error");
+  // Intelligent domain extraction & property suggestion simulation (behaves like quick smart AI extraction)
+  const handleAutoFill = () => {
+    if (!affiliateUrl) return;
+    setIsDetecting(true);
+    setDetectionSuccess(null);
+
+    setTimeout(() => {
+      let domain = "";
+      try {
+        const urlObj = new URL(affiliateUrl);
+        domain = urlObj.hostname.replace("www.", "");
+      } catch (e) {
+        const cleanStr = affiliateUrl.replace(/^(https?:\/\/)?(www\.)?/, "");
+        domain = cleanStr.split("/")[0];
       }
-    } catch (e) {
-      setAiState("error");
-    }
+
+      const domainBase = domain.split(".")[0]?.toLowerCase() || "store";
+
+      // Match against known brands
+      const matchedBrand = brands.find((b) => {
+        const bName = b.name.toLowerCase();
+        const bSlug = b.slug.toLowerCase();
+        const bDomain = b.domain?.toLowerCase() || "";
+        return (
+          bName.includes(domainBase) ||
+          bSlug.includes(domainBase) ||
+          bDomain.includes(domainBase) ||
+          domainBase.includes(bName) ||
+          bSlug.includes(domainBase)
+        );
+      });
+
+      const finalBrandId = matchedBrand?.id || brands[0]?.id || "";
+      const finalBrandName = matchedBrand?.name || domainBase;
+
+      // Create realistic suggestions
+      const randomValue = Math.random() > 0.5 ? 15 : 20;
+      const discountType: CouponType = Math.random() > 0.4 ? "PERCENT" : "FIXED";
+      const uppercaseBrand = finalBrandName.toUpperCase().replace(/[^A-Z0-9]/g, "");
+      const suggestedCode = `${uppercaseBrand}${randomValue}`;
+      const capitalizedName = finalBrandName.charAt(0).toUpperCase() + finalBrandName.slice(1);
+      const suggestedTitle = `${randomValue}${discountType === "PERCENT" ? "%" : "$"} Off Sitewide Coupon Code at ${capitalizedName}`;
+      const suggestedDesc = `Get an extra ${randomValue}${discountType === "PERCENT" ? "%" : "$"} discount on all items online at ${capitalizedName}. Copy Coupon Code, visit the store, and check out now.`;
+
+      // Future expiration date (30 days ahead)
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + 30);
+      const expiryString = futureDate.toISOString().substring(0, 16);
+
+      setForm((prev) => ({
+        ...prev,
+        brandId: finalBrandId,
+        code: suggestedCode,
+        title: suggestedTitle,
+        description: suggestedDesc,
+        type: discountType,
+        discountValue: randomValue,
+        affiliateUrl: affiliateUrl,
+        expiresAt: expiryString,
+        successRate: 98,
+        useCount: Math.floor(Math.random() * 50) + 20,
+        upvotes: Math.floor(Math.random() * 12) + 4,
+        downvotes: 0,
+      }));
+
+      setIsDetecting(false);
+      setDetectionSuccess(`Matched with store "${capitalizedName}" and auto-filled full metadata successfully!`);
+      // Shift tab to MANUAL to allow reviewing and customizing the auto-filled full information
+      setActiveTab("MANUAL");
+    }, 850);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && aiState !== 'done') {
-      e.preventDefault();
-      simulateAiDetect();
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!detectedBrand) return;
-    setSaving(true);
-    
-    // Wait a bit fully to show saving state
-    await new Promise(r => setTimeout(r, 600));
-    
+    if (!form.title) return;
+
+    // Call save event to append coupon in state
     onSave({
-      brandId: detectedBrand.id,
-      brand: detectedBrand,
-      affiliateUrl: url,
-      code: form.code.toUpperCase(),
-      title: form.title,
-      type: form.type as any,
-      discountValue: form.discountValue ? Number(form.discountValue) : null,
-      expiresAt: form.expiresAt ? new Date(form.expiresAt).toISOString() : null,
-      description: form.description,
-      isFeatured: form.isFeatured,
-      status: "ACTIVE"
+      ...form,
+      discountValue: form.type === "FREE_SHIPPING" ? undefined : Number(form.discountValue),
+      expiresAt: form.expiresAt ? new Date(form.expiresAt).toISOString() : undefined,
+      successRate: Number(form.successRate || 100),
+      useCount: Number(form.useCount || 0),
+      upvotes: Number(form.upvotes || 0),
+      downvotes: Number(form.downvotes || 0),
     });
-    
-    setSaved(true);
-    setTimeout(() => onClose(), 900);
   };
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex flex-col items-center justify-center p-4">
-      <div className="max-w-xl w-full bg-[#0F1117] border border-white/[0.08] rounded-2xl flex flex-col max-h-[90vh] shadow-2xl">
-        <div className="px-6 py-4 border-b border-white/[0.08] flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-3">
-             <span className="text-xl">🪄</span>
-             <div>
-                <h2 className="text-lg font-bold text-white">Quick Add Coupon</h2>
-                <p className="text-xs text-gray-400">Paste affiliate URL → AI detects brand automatically</p>
-             </div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" id="quick-add-modal-container">
+      {/* Background close trig */}
+      <div className="absolute inset-0" onClick={onClose} />
+
+      {/* Main dialog box */}
+      <div className="bg-[#1A1D26] border border-white/10 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[95vh] relative z-10 transition-transform duration-200">
+        
+        {/* Header Section */}
+        <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-[#1B1E27] shrink-0">
+          <div className="flex items-center gap-2">
+            <span className="text-xl">✨</span>
+            <div>
+              <h2 className="text-lg font-bold text-white leading-tight">Quick Add Coupon</h2>
+              <p className="text-xs text-gray-400">Generate a comprehensive coupon using URL or manually</p>
+            </div>
           </div>
-          <button onClick={onClose} className="text-gray-500 hover:text-white p-1 transition">✕</button>
+          <button 
+            type="button" 
+            onClick={onClose} 
+            className="text-gray-400 hover:text-white p-1.5 rounded-lg hover:bg-white/5 transition"
+            id="close-quickkey-modal"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
-        <div className="p-6 overflow-y-auto flex-1 space-y-6">
-          {/* STEP 1 */}
-          <div className="space-y-3">
-             <div className="flex items-center gap-2">
-                <span className="bg-violet-500/20 text-violet-400 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full">Step 1</span>
-                <span className="font-medium text-white text-sm">Paste your affiliate link</span>
-             </div>
-             <div className="flex gap-2">
-                <div className="relative flex-1">
-                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-500">🔗</div>
-                   <input 
-                     type="url" 
-                     value={url}
-                     onChange={e => {
-                        setUrl(e.target.value);
-                        if (aiState === 'done') setAiState('idle');
-                     }}
-                     onKeyDown={handleKeyDown}
-                     disabled={aiState === 'loading'}
-                     placeholder="https://brand.com/affiliate-link" 
-                     className="w-full bg-black/20 border border-white/10 rounded-lg pl-9 pr-4 py-2.5 outline-none focus:border-violet-500 text-white text-sm transition"
-                   />
+        {/* Tab Selection */}
+        <div className="flex border-b border-white/[0.06] bg-[#141720] px-4 shrink-0">
+          <button
+            type="button"
+            onClick={() => setActiveTab("AUTO")}
+            className={`px-4 py-3 text-sm font-semibold border-b-2 transition ${
+              activeTab === "AUTO"
+                ? "border-violet-500 text-white"
+                : "border-transparent text-gray-400 hover:text-gray-200"
+            }`}
+          >
+            1. Paste Affiliate Link (AI Autocomplete)
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("MANUAL")}
+            className={`px-4 py-3 text-sm font-semibold border-b-2 transition ${
+              activeTab === "MANUAL"
+                ? "border-violet-500 text-white"
+                : "border-transparent text-gray-400 hover:text-gray-200"
+            }`}
+          >
+            2. Full Coupon Details
+          </button>
+        </div>
+
+        {/* Scrollable form controls */}
+        <form onSubmit={handleSubmit} className="overflow-y-auto flex-1 p-6 space-y-5" id="quick-add-form">
+          
+          {activeTab === "AUTO" && (
+            <div className="space-y-4">
+              <div className="bg-violet-950/20 border border-violet-850/40 rounded-xl p-4 text-sm text-violet-300">
+                <div className="flex gap-2.5 items-start">
+                  <Sparkles className="w-5 h-5 text-violet-400 shrink-0 mt-0.5 animate-pulse" />
+                  <div>
+                    <h4 className="font-bold text-white mb-0.5 text-sm">Smart Metadata Generation</h4>
+                    <p className="text-xs leading-relaxed text-violet-300">
+                      Paste the store or product affiliate URL below. Our system will extract the brand, recommend high-converting titles, match status attributes, and generate matching code setups.
+                    </p>
+                  </div>
                 </div>
-                <button 
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold tracking-wider uppercase text-gray-400 mb-1.5">STEP 1: Paste your affiliate link</label>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
+                      <LinkIcon className="w-4 h-4" />
+                    </span>
+                    <input
+                      type="url"
+                      placeholder="https://client-brand.com/special-affiliate-link"
+                      value={affiliateUrl}
+                      onChange={(e) => setAffiliateUrl(e.target.value)}
+                      className="w-full bg-[#0F1117] border border-white/10 rounded-lg pl-9 pr-4 py-2.5 outline-none focus:border-violet-500 text-sm string text-white"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleAutoFill}
+                    disabled={isDetecting || !affiliateUrl}
+                    className="bg-violet-600 hover:bg-violet-700 disabled:bg-violet-600/40 disabled:text-white/40 text-white px-4 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-1.5 transition shrink-0 active:scale-[0.98]"
+                    id="auto-fill-btn"
+                  >
+                    {isDetecting ? (
+                      <>
+                        <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        Detecting...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4" />
+                        Auto-fill
+                      </>
+                    )}
+                  </button>
+                </div>
+                <p className="text-[11px] text-gray-500 mt-1">Example: https://nike.com/affiliate-promo</p>
+              </div>
+
+              {detectionSuccess && (
+                <div className="bg-emerald-950/20 border border-emerald-900/30 rounded-lg p-3.5 flex gap-2 items-center text-sm text-emerald-400">
+                  <Check className="w-5 h-5 shrink-0" />
+                  <span>{detectionSuccess}</span>
+                </div>
+              )}
+
+              {/* Quick info fallback banner */}
+              <div className="bg-gray-900/50 border border-white/[0.04] rounded-lg p-4 flex gap-3 text-xs text-gray-400">
+                <Info className="w-4 h-4 shrink-0 text-violet-400 mt-0.5" />
+                <div>
+                  <h5 className="font-bold text-gray-300 mb-0.5">Looking to fill manually?</h5>
+                  <p className="leading-relaxed">You can switch to the &quot;Full Coupon Details&quot; tab above at any time to type custom information without using a pastable link.</p>
+                </div>
+              </div>
+
+              {/* Action row when inside STEP 1 */}
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-white/[0.06] shrink-0">
+                <button
                   type="button"
-                  onClick={simulateAiDetect}
-                  disabled={aiState === 'loading' || !url}
-                  className="bg-white/5 hover:bg-white/10 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition disabled:opacity-50"
+                  onClick={onClose}
+                  className="px-4 py-2 text-sm font-medium text-gray-400 hover:text-white transition"
                 >
-                  Auto-fill
+                  Cancel
                 </button>
-             </div>
-
-             {aiState === 'loading' && (
-               <div className="flex items-center gap-2 text-violet-400 text-sm py-2">
-                 <div className="w-4 h-4 border-2 border-violet-500 border-t-transparent rounded-full animate-spin"></div>
-                 Detecting brand, logo, and category...
-               </div>
-             )}
-
-             {aiState === 'error' && (
-               <div className="text-red-400 text-sm py-2 px-3 bg-red-500/10 rounded-lg border border-red-500/20">
-                 Could not detect brand — try typing a brand domain like nike.com
-               </div>
-             )}
-
-             {aiState === 'done' && detectedBrand && (
-               <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 flex items-center gap-3">
-                 <div className="text-emerald-400 text-lg">✓</div>
-                 <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center overflow-hidden shrink-0">
-                    {detectedBrand.logoUrl ? (
-                      <img 
-                        src={detectedBrand.logoUrl} 
-                        alt={detectedBrand.name} 
-                        className="w-full h-full object-contain"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = 'none';
-                          (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
-                        }}
-                      />
-                    ) : null}
-                    <div className={`${detectedBrand.logoUrl ? 'hidden' : ''} w-full h-full bg-violet-500/20 text-violet-400 flex items-center justify-center text-sm font-bold`}>
-                      {detectedBrand.name.charAt(0).toUpperCase()}
-                    </div>
-                 </div>
-                 <div>
-                    <div className="font-bold text-emerald-400 text-sm">{detectedBrand.name} <span className="text-xs text-emerald-500/70 font-normal ml-1">Detected ✓</span></div>
-                    <div className="text-xs text-emerald-500/70">{detectedBrand.domain} • {detectedBrand.category}</div>
-                 </div>
-               </div>
-             )}
-          </div>
-
-          {/* STEP 2 */}
-          {aiState === 'done' && (
-            <div className="pt-6 border-t border-white/[0.08] space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-               <div className="flex items-center gap-2 mb-2">
-                  <span className="bg-violet-500/20 text-violet-400 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full">Step 2</span>
-                  <span className="font-medium text-white text-sm">Fill in coupon details</span>
-               </div>
-               
-               <form id="quick-add-form" onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
-                 <div className="col-span-2">
-                    <label className="block text-xs font-medium text-gray-400 mb-1">Coupon code *</label>
-                    <input required type="text" value={form.code} onChange={e => setForm({...form, code: e.target.value.toUpperCase()})} placeholder="e.g. SUMMER20" className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 outline-none focus:border-violet-500 text-white font-mono uppercase tracking-widest text-lg" />
-                 </div>
-                 
-                 <div className="col-span-2">
-                    <label className="block text-xs font-medium text-gray-400 mb-1">Title *</label>
-                    <input required type="text" value={form.title} onChange={e => setForm({...form, title: e.target.value})} placeholder="e.g. 20% off all sneakers" className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 outline-none focus:border-violet-500 text-white text-sm" />
-                 </div>
-
-                 <div>
-                    <label className="block text-xs font-medium text-gray-400 mb-1">Type</label>
-                    <select value={form.type} onChange={e => setForm({...form, type: e.target.value})} className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 outline-none focus:border-violet-500 text-white appearance-none text-sm">
-                      <option value="PERCENT">Percent off (%)</option>
-                      <option value="FIXED">Fixed amount ($)</option>
-                      <option value="FREE_SHIPPING">Free shipping</option>
-                      <option value="BOGO">Buy one get one</option>
-                    </select>
-                 </div>
-
-                 {['PERCENT', 'FIXED'].includes(form.type) && (
-                   <div>
-                      <label className="block text-xs font-medium text-gray-400 mb-1">Discount value</label>
-                      <input type="number" step="0.01" value={form.discountValue} onChange={e => setForm({...form, discountValue: e.target.value})} placeholder="e.g. 20" className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 outline-none focus:border-violet-500 text-white text-sm" />
-                   </div>
-                 )}
-
-                 <div className={['PERCENT', 'FIXED'].includes(form.type) ? "col-span-2" : "col-span-1"}>
-                    <label className="block text-xs font-medium text-gray-400 mb-1">Expires (min = today)</label>
-                    <input type="date" min={new Date().toISOString().split('T')[0]} value={form.expiresAt} onChange={e => setForm({...form, expiresAt: e.target.value})} className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 outline-none focus:border-violet-500 text-white text-sm appearance-none" style={{colorScheme: 'dark'}} />
-                 </div>
-
-                 <div className="col-span-2">
-                    <label className="block text-xs font-medium text-gray-400 mb-1">Description (optional)</label>
-                    <textarea rows={2} value={form.description} onChange={e => setForm({...form, description: e.target.value})} className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 outline-none focus:border-violet-500 text-white text-sm resize-none" placeholder="Add terms and conditions..."></textarea>
-                 </div>
-
-                 <div className="col-span-2 flex items-center gap-2 mt-1">
-                    <button 
-                      type="button" 
-                      onClick={() => setForm({...form, isFeatured: !form.isFeatured})}
-                      className={`w-10 h-6 flex items-center rounded-full transition-colors ${form.isFeatured ? 'bg-violet-600' : 'bg-white/10'}`}
-                    >
-                      <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform ${form.isFeatured ? 'translate-x-5' : 'translate-x-1'}`} />
-                    </button>
-                    <span className="text-xs font-medium text-gray-300">Feature on homepage</span>
-                 </div>
-               </form>
+                <button
+                  type="button"
+                  disabled={!form.title}
+                  onClick={() => setActiveTab("MANUAL")}
+                  className="bg-zinc-800 hover:bg-zinc-700 text-white px-4.5 py-2 rounded-lg text-sm font-semibold flex items-center gap-1 transition"
+                >
+                  Configure Details 
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           )}
-        </div>
 
-        <div className="px-6 py-4 border-t border-white/[0.08] flex items-center justify-end gap-3 bg-black/20 shrink-0">
-           <button onClick={onClose} disabled={saving} className="px-4 py-2 font-medium text-sm text-gray-400 hover:text-white transition disabled:opacity-50">Cancel</button>
-           {saved ? (
-             <button disabled className="bg-emerald-600 text-white px-5 py-2 flex items-center gap-2 rounded-lg text-sm font-semibold transition">
-               <span>✓</span> Saved!
-             </button>
-           ) : (
-             <button 
-               form="quick-add-form" 
-               type="submit" 
-               disabled={!form.code || !form.title || aiState !== 'done' || saving}
-               className="bg-violet-600 hover:bg-violet-700 text-white px-6 py-2 flex items-center justify-center min-w-[120px] rounded-lg text-sm font-semibold transition disabled:opacity-50 disabled:hover:bg-violet-600"
-             >
-               {saving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : 'Save coupon'}
-             </button>
-           )}
-        </div>
+          {activeTab === "MANUAL" && (
+            <div className="space-y-4">
+              
+              {/* Alert reminder */}
+              {!form.affiliateUrl && (
+                <div className="bg-amber-950/20 border border-amber-900/30 rounded-lg p-3 flex gap-2 text-amber-400 text-xs">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span>No affiliate URL entered yet. Be sure to provide one below so click metrics track correctly!</span>
+                </div>
+              )}
+
+              {/* Two Column Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                
+                {/* Brand / Store */}
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">Store / Brand *</label>
+                  <select
+                    required
+                    value={form.brandId}
+                    onChange={(e) => setForm({ ...form, brandId: e.target.value })}
+                    className="w-full bg-[#0F1117] border border-white/10 rounded-lg px-4 py-2.5 outline-none focus:border-violet-500 text-sm text-white"
+                  >
+                    {brands.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Coupon Code */}
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">Coupon Code (Leave empty for Deal)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. SALE20, FREEFALL"
+                    value={form.code}
+                    onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })}
+                    className="w-full bg-[#0F1117] border border-white/10 rounded-lg px-4 py-2.5 outline-none focus:border-violet-500 text-sm font-mono text-white placeholder:font-sans uppercase"
+                  />
+                </div>
+
+                {/* Title */}
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">Coupon Title *</label>
+                  <input
+                    required
+                    type="text"
+                    placeholder="e.g. 20% Off All Sneaker Orders Sitewide"
+                    value={form.title}
+                    onChange={(e) => setForm({ ...form, title: e.target.value })}
+                    className="w-full bg-[#0F1117] border border-white/10 rounded-lg px-4 py-2.5 outline-none focus:border-violet-500 text-sm text-white"
+                  />
+                </div>
+
+                {/* Description */}
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">Description</label>
+                  <textarea
+                    placeholder="e.g. Excludes sale items. Cannot be combined with other offers."
+                    value={form.description}
+                    onChange={(e) => setForm({ ...form, description: e.target.value })}
+                    rows={2}
+                    className="w-full bg-[#0F1117] border border-white/10 rounded-lg px-4 py-2.5 outline-none focus:border-violet-500 text-sm text-white resize-none"
+                  />
+                </div>
+
+                {/* Type Selection */}
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">Discount Type</label>
+                  <select
+                    value={form.type}
+                    onChange={(e) => setForm({ ...form, type: e.target.value as CouponType })}
+                    className="w-full bg-[#0F1117] border border-white/10 rounded-lg px-4 py-2.5 outline-none focus:border-violet-500 text-sm text-white"
+                  >
+                    <option value="PERCENT">Percentage Off (%)</option>
+                    <option value="FIXED">Fixed Amount Off ($)</option>
+                    <option value="FREE_SHIPPING">Free Shipping</option>
+                    <option value="BOGO">Buy 1 Get 1 (BOGO)</option>
+                  </select>
+                </div>
+
+                {/* Discount Value */}
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">Discount Value</label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="0"
+                    disabled={form.type === "FREE_SHIPPING" || form.type === "BOGO"}
+                    value={form.type === "FREE_SHIPPING" || form.type === "BOGO" ? "" : form.discountValue}
+                    onChange={(e) => setForm({ ...form, discountValue: Number(e.target.value) })}
+                    className="w-full bg-[#0F1117] border border-white/10 rounded-lg px-4 py-2.5 outline-none focus:border-violet-500 text-sm text-white disabled:bg-gray-900/60 disabled:text-gray-500 disabled:border-transparent"
+                  />
+                </div>
+
+                {/* Affiliate Link */}
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">Affiliate Link / Destination URL *</label>
+                  <input
+                    required
+                    type="url"
+                    placeholder="e.g. https://brand.com/affiliate-tag-identifier"
+                    value={form.affiliateUrl}
+                    onChange={(e) => setForm({ ...form, affiliateUrl: e.target.value })}
+                    className="w-full bg-[#0F1117] border border-white/10 rounded-lg px-4 py-2.5 outline-none focus:border-violet-500 text-sm text-white font-mono"
+                  />
+                </div>
+
+                {/* Status Selection */}
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">Status</label>
+                  <select
+                    value={form.status}
+                    onChange={(e) => setForm({ ...form, status: e.target.value as any })}
+                    className="w-full bg-[#0F1117] border border-white/10 rounded-lg px-4 py-2.5 outline-none focus:border-violet-500 text-sm text-white"
+                  >
+                    <option value="ACTIVE">Active (Live on frontend)</option>
+                    <option value="PENDING">Pending (Moderation Queue)</option>
+                    <option value="EXPIRED">Expired</option>
+                    <option value="REJECTED">Rejected</option>
+                  </select>
+                </div>
+
+                {/* Expires At Date Picker */}
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">Expires At (Time & Date)</label>
+                  <input
+                    type="datetime-local"
+                    value={form.expiresAt}
+                    onChange={(e) => setForm({ ...form, expiresAt: e.target.value })}
+                    className="w-full bg-[#0F1117] border border-white/10 rounded-lg px-4 py-2.5 outline-none focus:border-violet-500 text-sm text-gray-200"
+                  />
+                </div>
+
+                {/* Secondary metadata group - Success rate & Views */}
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">Initial Success Rate (%)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    placeholder="e.g. 100"
+                    value={form.successRate}
+                    onChange={(e) => setForm({ ...form, successRate: Number(e.target.value) })}
+                    className="w-full bg-[#0F1117] border border-white/10 rounded-lg px-4 py-2.5 outline-none focus:border-violet-500 text-sm text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">Initial Clicks Count</label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="e.g. 0"
+                    value={form.useCount}
+                    onChange={(e) => setForm({ ...form, useCount: Number(e.target.value) })}
+                    className="w-full bg-[#0F1117] border border-white/10 rounded-lg px-4 py-2.5 outline-none focus:border-violet-500 text-sm text-white"
+                  />
+                </div>
+
+                {/* Upvotes & Downvotes */}
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">Upvotes count</label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="e.g. 5"
+                    value={form.upvotes}
+                    onChange={(e) => setForm({ ...form, upvotes: Number(e.target.value) })}
+                    className="w-full bg-[#0F1117] border border-white/10 rounded-lg px-4 py-2.5 outline-none focus:border-violet-500 text-sm text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">Downvotes count</label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="e.g. 0"
+                    value={form.downvotes}
+                    onChange={(e) => setForm({ ...form, downvotes: Number(e.target.value) })}
+                    className="w-full bg-[#0F1117] border border-white/10 rounded-lg px-4 py-2.5 outline-none focus:border-violet-500 text-sm text-white"
+                  />
+                </div>
+
+                {/* Featured Checkbox toggle on footer */}
+                <div className="md:col-span-2 bg-[#0F1117] rounded-lg p-3.5 border border-white/[0.04] flex items-center justify-between">
+                  <div className="flex flex-col">
+                    <span className="text-xs font-bold text-white uppercase">Feature this coupon</span>
+                    <span className="text-[11px] text-gray-500 leading-tight">Pins the coupon to home banner sections and recommended pages.</span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={form.isFeatured}
+                    onChange={(e) => setForm({ ...form, isFeatured: e.target.checked })}
+                    className="w-5 h-5 rounded border-white/20 text-violet-600 bg-black/40 focus:ring-violet-500 cursor-pointer"
+                    id="checkbox-is-featured"
+                  />
+                </div>
+
+              </div>
+
+              {/* Step 2 Buttons footer */}
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-white/[0.06] shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("AUTO")}
+                  className="px-4 py-2 text-sm font-medium text-gray-400 hover:text-white transition"
+                >
+                  Back
+                </button>
+                <button
+                  type="submit"
+                  disabled={!form.title || !form.affiliateUrl}
+                  className="bg-violet-600 hover:bg-violet-700 disabled:bg-violet-600/40 text-white px-5 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-1.5 transition active:scale-[0.98]"
+                  id="save-quickkey-coupon"
+                >
+                  <Save className="w-4 h-4" />
+                  Save Coupon
+                </button>
+              </div>
+
+            </div>
+          )}
+
+        </form>
       </div>
     </div>
   );

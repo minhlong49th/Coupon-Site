@@ -1,40 +1,69 @@
+"use client";
+
+import React from "react";
 import { cn } from "@/lib/utils";
-import type { CouponStatus } from "@/types";
 
-const statusStyles: Record<CouponStatus, string> = {
-  ACTIVE:   "bg-emerald-500/15 text-emerald-400 border-emerald-500/20",
-  EXPIRED:  "bg-gray-500/15 text-gray-400 border-gray-500/20",
-  PENDING:  "bg-amber-500/15 text-amber-400 border-amber-500/20",
-  REJECTED: "bg-red-500/15 text-red-400 border-red-500/20",
-};
+interface StatusBadgeProps {
+  status: "ACTIVE" | "PENDING" | "EXPIRED" | "REJECTED";
+}
 
-export function StatusBadge({ status }: { status: CouponStatus }) {
+export function StatusBadge({ status }: StatusBadgeProps) {
+  const configs = {
+    ACTIVE: {
+      text: "Active",
+      styles: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+    },
+    PENDING: {
+      text: "Pending",
+      styles: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+    },
+    EXPIRED: {
+      text: "Expired",
+      styles: "bg-red-500/10 text-red-400 border-red-500/20",
+    },
+    REJECTED: {
+      text: "Rejected",
+      styles: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
+    },
+  };
+
+  const config = configs[status] || configs.PENDING;
+
   return (
-    <span className={cn(
-      "inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full border",
-      statusStyles[status]
-    )}>
-      {status.charAt(0) + status.slice(1).toLowerCase()}
+    <span className={cn("text-xs font-semibold px-2.5 py-1 rounded-full border inline-block whitespace-nowrap", config.styles)}>
+      {config.text}
     </span>
   );
 }
 
-export function TypeBadge({ type, value }: { type: string; value: number | null }) {
-  const label = type === "PERCENT" ? `${value}% OFF`
-    : type === "FIXED" ? `$${value} OFF`
-    : type === "FREE_SHIPPING" ? "FREE SHIP"
-    : type === "BOGO" ? "BOGO" : "DEAL";
+interface TypeBadgeProps {
+  type: string;
+  value?: number | null;
+}
+
+export function TypeBadge({ type, value }: TypeBadgeProps) {
+  let label = "";
+
+  switch (type) {
+    case "PERCENT":
+      label = value ? `${value}% Off` : "% Discount";
+      break;
+    case "FIXED":
+      label = value ? `$${value} Off` : "$ Discount";
+      break;
+    case "FREE_SHIPPING":
+      label = "Free Shipping";
+      break;
+    case "BOGO":
+      label = "BOGO Deal";
+      break;
+    default:
+      label = "Promo Offer";
+  }
+
   return (
-    <span className="inline-flex items-center text-xs font-bold px-2 py-0.5 rounded bg-violet-500/15 text-violet-300 border border-violet-500/20">
+    <span className="text-xs font-semibold px-2.5 py-1 rounded bg-[#1C1F2A] text-violet-400 border border-violet-500/20 whitespace-nowrap inline-block">
       {label}
-    </span>
-  );
-}
-
-export function Badge({ children, className }: { children: React.ReactNode, className?: string }) {
-  return (
-    <span className={cn("inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full", className)}>
-      {children}
     </span>
   );
 }

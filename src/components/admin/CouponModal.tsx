@@ -21,6 +21,10 @@ export function CouponModal({ coupon, brands, onClose, onSave }: CouponModalProp
     status: "ACTIVE",
     expiresAt: "",
     isFeatured: false,
+    successRate: 100,
+    useCount: 0,
+    upvotes: 0,
+    downvotes: 0,
   });
 
   useEffect(() => {
@@ -28,9 +32,30 @@ export function CouponModal({ coupon, brands, onClose, onSave }: CouponModalProp
       setForm({
         ...coupon,
         expiresAt: coupon.expiresAt ? coupon.expiresAt.substring(0, 16) : "",
+        successRate: coupon.successRate ?? 100,
+        useCount: coupon.useCount ?? 0,
+        upvotes: coupon.upvotes ?? 0,
+        downvotes: coupon.downvotes ?? 0,
+      });
+    } else {
+      setForm({
+        brandId: brands[0]?.id || "",
+        code: "",
+        title: "",
+        description: "",
+        type: "PERCENT",
+        discountValue: 0,
+        affiliateUrl: "",
+        status: "ACTIVE",
+        expiresAt: "",
+        isFeatured: false,
+        successRate: 100,
+        useCount: 0,
+        upvotes: 0,
+        downvotes: 0,
       });
     }
-  }, [coupon]);
+  }, [coupon, brands]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,6 +63,10 @@ export function CouponModal({ coupon, brands, onClose, onSave }: CouponModalProp
       ...form,
       discountValue: form.discountValue ? Number(form.discountValue) : null,
       expiresAt: form.expiresAt ? new Date(form.expiresAt).toISOString() : null,
+      successRate: form.successRate !== undefined ? Number(form.successRate) : 100,
+      useCount: form.useCount !== undefined ? Number(form.useCount) : 0,
+      upvotes: form.upvotes !== undefined ? Number(form.upvotes) : 0,
+      downvotes: form.downvotes !== undefined ? Number(form.downvotes) : 0,
     });
   };
 
@@ -104,6 +133,28 @@ export function CouponModal({ coupon, brands, onClose, onSave }: CouponModalProp
               <div>
                 <label className="block text-sm font-semibold text-gray-300 mb-1">Expires At</label>
                 <input type="datetime-local" value={form.expiresAt || ""} onChange={e => setForm({ ...form, expiresAt: e.target.value })} className="w-full bg-[#0F1117] border border-white/10 rounded-lg px-4 py-2 outline-none focus:border-violet-500 text-white" style={{colorScheme: 'dark'}}/>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-300 mb-1">Success Rate (%)</label>
+                <input type="number" min="0" max="100" value={form.successRate !== undefined ? form.successRate : ""} onChange={e => setForm({ ...form, successRate: Number(e.target.value) })} className="w-full bg-[#0F1117] border border-white/10 rounded-lg px-4 py-2 outline-none focus:border-violet-500 text-white" />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-300 mb-1">Views Count (Views)</label>
+                <input type="number" min="0" value={form.useCount !== undefined ? form.useCount : ""} onChange={e => setForm({ ...form, useCount: Number(e.target.value) })} className="w-full bg-[#0F1117] border border-white/10 rounded-lg px-4 py-2 outline-none focus:border-violet-500 text-white" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-300 mb-1">Upvotes</label>
+                <input type="number" min="0" value={form.upvotes !== undefined ? form.upvotes : ""} onChange={e => setForm({ ...form, upvotes: Number(e.target.value) })} className="w-full bg-[#0F1117] border border-white/10 rounded-lg px-4 py-2 outline-none focus:border-violet-500 text-white" />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-300 mb-1">Downvotes</label>
+                <input type="number" min="0" value={form.downvotes !== undefined ? form.downvotes : ""} onChange={e => setForm({ ...form, downvotes: Number(e.target.value) })} className="w-full bg-[#0F1117] border border-white/10 rounded-lg px-4 py-2 outline-none focus:border-violet-500 text-white" />
               </div>
             </div>
 

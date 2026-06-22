@@ -1,5 +1,6 @@
 "use client";
 import { useState, useCallback } from "react";
+import { toast } from "sonner";
 
 export function useCopyCode() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -27,6 +28,13 @@ export function useCopyCode() {
       } catch (err) {}
       document.body.removeChild(el);
     }
+    
+    // Show feedback toast notification
+    toast.success(`Code "${code}" copied to clipboard! 👋`, {
+      description: "Redirecting you to the store now to redeem your discount...",
+      duration: 3000,
+    });
+
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 1500);
     setTimeout(() => window.open(affiliateUrl || "#", "_blank", "noopener,noreferrer"), 500);

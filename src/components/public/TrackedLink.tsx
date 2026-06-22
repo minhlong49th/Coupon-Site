@@ -1,36 +1,36 @@
 "use client";
 
-import { ReactNode } from "react";
+import React from "react";
 
-interface TrackedLinkProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
-  href: string;
-  brandId: string;
-  eventType?: string;
-  children: ReactNode;
+interface TrackedLinkProps {
+  href?: string;
+  brandId?: string;
+  couponId?: string;
+  className?: string;
+  children: React.ReactNode;
 }
 
-export function TrackedLink({ href, brandId, eventType = 'visit_store', children, className, ...props }: TrackedLinkProps) {
-  const handleClick = (e: React.MouseEvent) => {
-    // Fire tracking event asynchronously
-    fetch('/api/track', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type: eventType, id: brandId })
-    }).catch(console.error);
-    
-    if (props.onClick) {
-      props.onClick(e as any);
+export function TrackedLink({ href, brandId, couponId, className, children }: TrackedLinkProps) {
+  const handleClick = async () => {
+    if (!href) return;
+    try {
+      await fetch("/api/track", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ brandId, couponId, timestamp: new Date().toISOString() })
+      });
+    } catch (e) {
+      // Safe fallback if tracking endpoint doesn't exist
     }
   };
 
   return (
-    <a 
-      href={href} 
-      target="_blank" 
-      rel="sponsored nofollow noopener noreferrer" 
+    <a
+      href={href || "#"}
+      target="_blank"
+      rel="noopener noreferrer nofollow"
       onClick={handleClick}
       className={className}
-      {...props}
     >
       {children}
     </a>
