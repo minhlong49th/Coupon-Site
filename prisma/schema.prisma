@@ -57,6 +57,8 @@ model User {
   votes       Vote[]
   clicks      CouponClick[]
   karmaEvents KarmaEvent[]
+  mediaAssets MediaAsset[]
+  posts       Post[]
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
@@ -74,6 +76,7 @@ model Brand {
   description  String?
   isActive     Boolean   @default(true)
   coupons      Coupon[]
+  posts        PostBrand[]
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
@@ -102,6 +105,7 @@ model Coupon {
   verifiedAt      DateTime?
   clicks          CouponClick[]
   votes           Vote[]
+  posts           PostCoupon[]
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
@@ -178,4 +182,190 @@ model AuditLog {
 
   @@index([adminId])
   @@index([entityType, entityId])
+}
+
+// ============================================================
+// MEDIA MODULE
+// ============================================================
+
+enum MediaType {
+  IMAGE
+  VIDEO
+  DOCUMENT
+  OTHER
+}
+
+model MediaAsset {
+  id          String    @id @default(cuid())
+
+  // File info
+  filename    String                        // tên file gốc
+  key         String    @unique             // Uploadthing key (dùng để xóa)
+  url         String                        // URL CDN gốc (full resolution)
+  mimeType    String                        // image/jpeg, image/png, image/webp, v.v.
+  size        Int                           // bytes
+  mediaType   MediaType @default(IMAGE)
+
+  // Image dimensions (null nếu không phải ảnh)
+  width       Int?
+  height      Int?
+
+  // SEO / Accessibility
+  alt         String?                       // alt text
+  caption     String?                       // caption hiển thị dưới ảnh
+  title       String?                       // internal title để tìm kiếm
+
+  // Variants — lưu dạng JSON
+  // { thumbnail: { url, width, height }, card: { url, width, height }, og: { url, width, height } }
+  variants    Json?
+
+  // Folder / organization
+  folder      String?   @default("uploads") // virtual folder
+
+  // Relations
+  uploadedById String
+  uploadedBy   User     @relation(fields: [uploadedById], references: [id])
+
+  // Bài viết dùng asset này làm thumbnail
+  postThumbnails Post[] @relation("PostThumbnail")
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([mediaType, createdAt])
+  @@index([folder])
+  @@index([mimeType])
+  @@map("media_assets")
+}
+
+// ============================================================
+// BLOG MODULE
+// ============================================================
+
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+  SCHEDULED
+  ARCHIVED
+}
+
+enum ContentType {
+  RICH_TEXT   // Tiptap JSON
+  MARKDOWN    // Raw markdown string
+}
+
+model Post {
+  id            String      @id @default(cuid())
+  title         String
+  slug          String      @unique
+  content       Json        // Tiptap JSON hoặc markdown string dạng { type: "md", body: "..." }
+  contentType   ContentType @default(RICH_TEXT)
+  excerpt       String?     @db.Text
+  
+  thumbnailId   String?
+  thumbnail     MediaAsset? @relation("PostThumbnail", fields: [thumbnailId], references: [id])
+  thumbnailUrl  String?
+
+  status        PostStatus  @default(DRAFT)
+  publishedAt   DateTime?
+  scheduledAt   DateTime?   // Thời điểm tự động publish
+
+  // SEO
+  seoTitle      String?
+  seoDesc       String?     @db.VarChar(160)
+  ogImage       String?
+
+  // Stats
+  readingTime   Int?        // Phút đọc ước tính
+  viewCount     Int         @default(0)
+
+  // Relations
+  authorId      String
+  author        User        @relation(fields: [authorId], references: [id])
+  categories    CategoriesOnPosts[]
+  tags          TagsOnPosts[]
+  coupons       PostCoupon[]
+  brands        PostBrand[]
+
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([status, publishedAt])
+  @@index([slug])
+  @@map("posts")
+}
+
+model Category {
+  id          String              @id @default(cuid())
+  name        String
+  slug        String              @unique
+  description String?
+  posts       CategoriesOnPosts[]
+
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@map("categories")
+}
+
+model Tag {
+  id        String        @id @default(cuid())
+  name      String
+  slug      String        @unique
+  posts     TagsOnPosts[]
+
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@map("tags")
+}
+
+// Join table: Post <-> Category (many-to-many)
+model CategoriesOnPosts {
+  post       Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId     String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  categoryId String
+
+  @@id([postId, categoryId])
+  @@map("categories_on_posts")
+}
+
+// Join table: Post <-> Tag (many-to-many)
+model TagsOnPosts {
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId String
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  tagId  String
+
+  @@id([postId, tagId])
+  @@map("tags_on_posts")
+}
+
+// Coupon nhúng vào bài viết
+model PostCoupon {
+  id        String  @id @default(cuid())
+  post      Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId    String
+  // Tham chiếu sang model Coupon đã có trong hệ thống
+  couponId  String
+  coupon    Coupon  @relation(fields: [couponId], references: [id])
+  position  Int?    // Thứ tự hiển thị trong bài (0-indexed)
+  note      String? // Ghi chú bổ sung hiển thị kèm coupon
+
+  @@unique([postId, couponId])
+  @@map("post_coupons")
+}
+
+// Brand gắn với bài viết
+model PostBrand {
+  post      Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId    String
+  // Tham chiếu sang model Brand đã có trong hệ thống
+  brandId   String
+  brand     Brand   @relation(fields: [brandId], references: [id])
+  isPrimary Boolean @default(false) // Brand chính hiện logo đầu bài
+
+  @@id([postId, brandId])
+  @@map("post_brands")
 }

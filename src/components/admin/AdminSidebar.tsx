@@ -4,11 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const NAV = [
-  { href: "/dashboard",  label: "Dashboard",   icon: "M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" },
-  { href: "/coupons",    label: "Coupons",      icon: "M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" },
-  { href: "/brands",     label: "Brands",       icon: "M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9z M3 9l2.45-4.9A2 2 0 0 1 7.24 3h9.52a2 2 0 0 1 1.8 1.1L21 9" },
-  { href: "/moderation", label: "Moderation",   icon: "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z", badge: true },
-  { href: "/analytics",  label: "Analytics",    icon: "M18 20V10 M12 20V4 M6 20v-6" },
+  { href: "/admin",      label: "Dashboard",    icon: "M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" },
+  { href: "/admin/blog",       label: "Blog",         icon: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M16 13H8 M16 17H8 M10 9H8" },
+  { href: "/admin/media",      label: "Media",        icon: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M17 8l-5-5-5 5 M12 3v12" },
 ];
 
 export function AdminSidebar({ pendingCount = 0 }: { pendingCount?: number }) {
@@ -29,8 +27,8 @@ export function AdminSidebar({ pendingCount = 0 }: { pendingCount?: number }) {
 
       {/* Nav */}
       <nav className="flex-1 p-2 space-y-0.5">
-        {NAV.map(({ href, label, icon, badge }) => {
-          const active = pathname.startsWith(href);
+        {NAV.map(({ href, label, icon }) => {
+          const active = pathname.startsWith(href) && href !== "/admin" || (href === "/admin" && pathname === "/admin");
           return (
             <Link
               key={href}
@@ -41,11 +39,6 @@ export function AdminSidebar({ pendingCount = 0 }: { pendingCount?: number }) {
                 <path d={icon}/>
               </svg>
               {!collapsed && <span className="flex-1">{label}</span>}
-              {!collapsed && badge && pendingCount > 0 && (
-                <span className="ml-auto text-xs bg-amber-500 text-black font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
-                  {pendingCount}
-                </span>
-              )}
             </Link>
           );
         })}

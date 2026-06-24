@@ -1643,6 +1643,28 @@ export function AdminDashboardClient({
             collapsed={sidebarCollapsed}
             onClick={() => setActiveTab("brands")}
           />
+          <a
+            href="/admin/blog"
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium transition duration-200 outline-none w-full text-left ${
+              sidebarCollapsed ? "justify-center" : ""
+            } text-gray-400 hover:bg-white/[0.04] hover:text-white`}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M16 13H8 M16 17H8 M10 9H8" />
+            </svg>
+            {!sidebarCollapsed && <span className="text-sm truncate">Blog</span>}
+          </a>
+          <a
+            href="/admin/media"
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium transition duration-200 outline-none w-full text-left ${
+              sidebarCollapsed ? "justify-center" : ""
+            } text-gray-400 hover:bg-white/[0.04] hover:text-white`}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M17 8l-5-5-5 5 M12 3v12" />
+            </svg>
+            {!sidebarCollapsed && <span className="text-sm truncate">Media</span>}
+          </a>
           <SidebarNavBtn
             label="Moderation Queue"
             icon={<Inbox className="w-4 h-4 shrink-0" />}
